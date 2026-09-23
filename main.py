@@ -7,7 +7,10 @@
 
 import sys
 
-SYSTEMS = {"xor", "aes", "rsa", "pgp-xor", "pgp-aes"}
+from xor import run_xor
+from aes import run_aes
+from rsa import run_rsa, run_rsa_generate
+from pgp import run_pgp_aes, run_pgp_xor
 
 USAGE = """USAGE
      ./my_pgp CRYPTO_SYSTEM MODE [OPTIONS] [key]
@@ -37,6 +40,52 @@ Cipher or decipher MESSAGE using a given CRYPTO_SYSTEM. The MESSAGE is read from
 def help():
     print(USAGE)
 
+HANDLERS = {
+    "xor": run_xor,
+    "aes": run_aes,
+    "rsa": run_rsa,
+    "pgp-xor": run_pgp_xor,
+    "pgp-aes": run_pgp_aes
+}
+
+def print_error(message: str) -> int:
+    print(f"error: {message}", file=sys.stderr)
+    return 84
+
+def parse_args(argv: list[str]) -> dict:
+    return {
+        "crypto_system": argv[1],
+        "mode": argv[2] if len(argv) > 2 else None,
+        "options": [a for a in argv[3:] if a.startswith("-")],
+        "operands": [a for a in argv[3:] if not a.startswith("-")]
+    }
+
+def check_args(args: dict) -> int:
+    if args["crypto_system"] not in HANDLERS:
+        return print_error("unknown crypto system: " + args["crypto_system"])
+
+    if args["mode"] is None:
+        return print_error("missing mode.")
+
+    if args["mode"] not in {"-c", "-d", "-g"}:
+        return print_error("unknown mode: " + args["mode"])
+
+    if args["mode"] == "-g":
+        if args["crypto_system"] != "rsa":
+            return print_error("-g is only available for rsa.")
+        if len(args["operands"]) != 2:
+            return print_error("-g requires exactly two prime numbers.")
+        return 0
+
+    for option in args["options"]:
+        if option != "-b":
+            return print_error("unknown option: " + option)
+
+    if len(args["operands"]) != 1:
+        return print_error("expected exactly one key.")
+
+    return 0
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
         help()
@@ -46,11 +95,18 @@ def main(argv: list[str]) -> int:
         help()
         return 0
 
-    if argv[1] not in SYSTEMS:
-        print("error: Invalid argument.", file=sys.stderr)
+    args = parse_args(argv)
+    if check_args(args) != 0:
         return 84
 
-    return 0
+    if args["mode"] == "-g":
+        return run_rsa_generate(args["operands"][0], args["operands"][1])
+
+    handler = HANDLERS[args["crypto_system"]]
+    return handler(mode=args["mode"],
+                   key=args["operands"][0],
+                   block="-b" in args["options"],
+                   data=sys.stdin.buffer.read())
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
