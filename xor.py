@@ -7,6 +7,7 @@
 
 import sys
 
+
 def xor(data: bytes, key: bytes) -> bytes:
 
     result = []
@@ -16,25 +17,51 @@ def xor(data: bytes, key: bytes) -> bytes:
 
     return bytes(result)
 
+def split_blocks(data: bytes, size: int, block: bool) -> list:
+
+    blocks = []
+
+    for i in range(0, len(data), size):
+        chunk = data[i:i + size]
+        chunk = chunk + b"\x00" * (size - len(chunk))
+        blocks.append(chunk)
+        if block:
+            break
+
+    return blocks
+
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
 
     try:
-        bytes.fromhex(key)
+        key_bytes = bytes.fromhex(key)
     except ValueError:
         print("error: invalid key.", file=sys.stderr)
+        return 84
+
+    if len(key_bytes) == 0:
+        print("error: empty key.", file=sys.stderr)
         return 84
 
     if data.endswith(b"\n"):
         data = data[:-1]
 
-    key_bytes = bytes.fromhex(key)
     if mode == "-c":
-        result = xor(data[::-1], key_bytes).hex()
-        print(result)
-    elif mode == "-d":
-        data_hexa = data.decode()
-        data_bytes = bytes.fromhex(data)
-        result = xor(data_bytes, key_bytes)
-        sys.stdout.buffer.write(result[::-1])
+        result = b""
+        for chunk in split_blocks(data, len(key_bytes), block):
+            result += xor(chunk[::-1], key_bytes)
+        print(result.hex())
+        return 0
+
+    if mode == "-d":
+        try:
+            data = bytes.fromhex(data.decode())
+        except (ValueError, UnicodeDecodeError):
+            print("error: invalid ciphered message.", file=sys.stderr)
+            return 84
+
+        result = b""
+        for chunk in split_blocks(data, len(key_bytes), block):
+            result += xor(chunk, key_bytes)[::-1]
+        sys.stdout.buffer.write(result + b"\n")
 
     return 0
