@@ -6,7 +6,14 @@
 ##
 
 def xor(message: bytes, key_hex: str) -> str:
-    return 0
+    key_bytes = bytes.fromhex(key_hex)
+
+    result = []
+    for byte, key in zip(message[::-1], key_bytes):
+        result.append(byte ^ key)
+
+    result = bytes(result)
+    return result.hex()
 
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
     return 0
