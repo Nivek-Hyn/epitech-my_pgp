@@ -7,15 +7,14 @@
 
 import sys
 
-def xor(message: bytes, key_hex: str) -> str:
-    key_bytes = bytes.fromhex(key_hex)
+def xor(data: bytes, key: bytes) -> bytes:
 
     result = []
-    for byte, key in zip(message[::-1], key_bytes):
-        result.append(byte ^ key)
 
-    result = bytes(result)
-    return result.hex()
+    for data_byte, key_byte in zip(data, key):
+        result.append(data_byte ^ key_byte)
+
+    return bytes(result)
 
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
 
@@ -28,5 +27,14 @@ def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
     if data.endswith(b"\n"):
         data = data[:-1]
 
-    print(xor(data, key))
+    key_bytes = bytes.fromhex(key)
+    if mode == "-c":
+        result = xor(data[::-1], key_bytes).hex()
+        print(result)
+    elif mode == "-d":
+        data_hexa = data.decode()
+        data_bytes = bytes.fromhex(data)
+        result = xor(data_bytes, key_bytes)
+        sys.stdout.buffer.write(result[::-1])
+
     return 0
