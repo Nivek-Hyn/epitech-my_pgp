@@ -5,6 +5,8 @@
 ## xor
 ##
 
+import sys
+
 def xor(message: bytes, key_hex: str) -> str:
     key_bytes = bytes.fromhex(key_hex)
 
@@ -16,4 +18,15 @@ def xor(message: bytes, key_hex: str) -> str:
     return result.hex()
 
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
+
+    try:
+        bytes.fromhex(key)
+    except ValueError:
+        print("error: invalid key.", file=sys.stderr)
+        return 84
+
+    if data.endswith(b"\n"):
+        data = data[:-1]
+
+    print(xor(data, key))
     return 0
