@@ -25,48 +25,63 @@ def parse_ciphertext(line: str) -> tuple:
     return get_int_from_hex(parts[0]), get_int_from_hex(parts[1])
 
 
+def cipher_elgamal(m: int, k: int, y: int, p: int, g: int) -> tuple:
+    c1 = pow(g, k, p)
+    c2 = (m * pow(y, k, p)) % p
+    return c1, c2
+
+
+def decipher_elgamal(c1: int, c2: int, x: int, p: int) -> int:
+    s = pow(c1, x, p)
+    return (c2 * pow(s, -1, p)) % p
+
+
+def run_elgamal_cipher(key: str, data: bytes) -> int:
+    parts = key.split(":", maxsplit=1)
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        print("error: invalid key.", file=sys.stderr)
+        return 84
+
+    try:
+        k = get_int_from_hex(parts[0])
+        y, p, g = parse_elgamal_key(parts[1])
+    except ValueError:
+        print("error: invalid key.", file=sys.stderr)
+        return 84
+
+    if data.endswith(b"\n"):
+        data = data[:-1]
+    m = int.from_bytes(data, "little")
+
+    if m >= p:
+        print("error: message is too big for the modulus.",
+              file=sys.stderr)
+        return 84
+
+    c1, c2 = cipher_elgamal(m, k, y, p, g)
+    print(f"{get_hex_from_int(c1)}-{get_hex_from_int(c2)}")
+    return 0
+
+
+def run_elgamal_decipher(key: str, data: bytes) -> int:
+    try:
+        x, p, g = parse_elgamal_key(key)
+        c1, c2 = parse_ciphertext(data.decode().strip())
+        m = decipher_elgamal(c1, c2, x, p)
+    except (ValueError, UnicodeDecodeError):
+        print("error: invalid ciphered message or key.", file=sys.stderr)
+        return 84
+
+    byte_count = (m.bit_length() + 7) // 8
+    sys.stdout.buffer.write(m.to_bytes(byte_count, "little") + b"\n")
+    return 0
+
+
 def run_elgamal(mode: str, key: str, block: bool, data: bytes) -> int:
     if mode == "-c":
-        parts = key.split(":", maxsplit=1)
-        if len(parts) != 2 or not parts[0] or not parts[1]:
-            print("error: invalid key.", file=sys.stderr)
-            return 84
-
-        try:
-            k = get_int_from_hex(parts[0])
-            y, p, g = parse_elgamal_key(parts[1])
-        except ValueError:
-            print("error: invalid key.", file=sys.stderr)
-            return 84
-
-        if data.endswith(b"\n"):
-            data = data[:-1]
-        m = int.from_bytes(data, "little")
-
-        if m >= p:
-            print("error: message is too big for the modulus.",
-                  file=sys.stderr)
-            return 84
-
-        c1 = pow(g, k, p)
-        c2 = (m * pow(y, k, p)) % p
-        print(f"{get_hex_from_int(c1)}-{get_hex_from_int(c2)}")
-        return 0
-
+        return run_elgamal_cipher(key, data)
     if mode == "-d":
-        try:
-            x, p, g = parse_elgamal_key(key)
-            c1, c2 = parse_ciphertext(data.decode().strip())
-            s = pow(c1, x, p)
-            m = (c2 * pow(s, -1, p)) % p
-        except (ValueError, UnicodeDecodeError):
-            print("error: invalid ciphered message or key.", file=sys.stderr)
-            return 84
-
-        byte_count = (m.bit_length() + 7) // 8
-        sys.stdout.buffer.write(m.to_bytes(byte_count, "little") + b"\n")
-        return 0
-
+        return run_elgamal_decipher(key, data)
     return 0
 
 
