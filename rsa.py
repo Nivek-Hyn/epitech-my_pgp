@@ -11,7 +11,19 @@ from math import lcm, gcd
 FERMAT_PRIMES = [65537, 257, 17, 5, 3]
 
 def run_rsa(mode: str, key: str, block: bool, data: bytes) -> int:
+    try:
+        exponent, modulus = parse_key(key)
+    except ValueError:
+        print("error: invalid key.", file=sys.stderr)
+        return 84
     return 0
+
+
+def parse_key(key: str) -> tuple:
+    parts = key.split("-")
+    if len(parts) != 2:
+        raise ValueError("key must be formatted as exponent-modulus.")
+    return get_int_from_hex(parts[0]), get_int_from_hex(parts[1])
 
 
 def get_int_from_hex(hex_str: str) -> int:
