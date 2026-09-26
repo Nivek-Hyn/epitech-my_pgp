@@ -115,7 +115,6 @@ class TestRsaCli(unittest.TestCase):
 
 
 class TestPgpXorCli(unittest.TestCase):
-
     def test_cipher_block_mode(self):
         result = run_pgp("pgp-xor", "-c", "-b",
                          f"{SYMMETRIC_KEY}:010001-{N_256}", data=PGP_MESSAGE)
@@ -128,6 +127,43 @@ class TestPgpXorCli(unittest.TestCase):
                          data=b"32000a5411015504534e06024d050226\n")
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, PGP_MESSAGE)
+
+
+class TestElgamalCli(unittest.TestCase):
+
+    def test_help_lists_elgamal(self):
+        result = run_pgp("-h")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(b"elgamal", result.stdout)
+
+    def test_generate_matches_hand_computed_vector(self):
+        result = run_pgp("elgamal", "-g", "17", "05", "07")
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout,
+                         b"public key: 11-17-05\nprivate key: 07-17-05\n")
+
+    def test_generate_requires_three_operands(self):
+        result = run_pgp("elgamal", "-g", "17", "05")
+        self.assertEqual(result.returncode, 84)
+
+    def test_cipher_then_decipher(self):
+        ciphered = run_pgp("elgamal", "-c", "03:11-17-05", data=b"\x02\n")
+        self.assertEqual(ciphered.returncode, 0)
+        self.assertEqual(ciphered.stdout, b"0a-05\n")
+
+        deciphered = run_pgp("elgamal", "-d", "07-17-05",
+                             data=ciphered.stdout)
+        self.assertEqual(deciphered.returncode, 0)
+        self.assertEqual(deciphered.stdout, b"\x02\n")
+
+    def test_message_too_big_exits_84(self):
+        result = run_pgp("elgamal", "-c", "03:11-17-05",
+                         data=b"\xff" * 23)
+        self.assertEqual(result.returncode, 84)
+
+    def test_rsa_generate_still_rejects_three_operands(self):
+        result = run_pgp("rsa", "-g", "d3", "e3", "e9")
+        self.assertEqual(result.returncode, 84)
 
 
 if __name__ == "__main__":
