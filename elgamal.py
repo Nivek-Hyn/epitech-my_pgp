@@ -53,6 +53,20 @@ def run_elgamal(mode: str, key: str, block: bool, data: bytes) -> int:
         print(f"{get_hex_from_int(c1)}-{get_hex_from_int(c2)}")
         return 0
 
+    if mode == "-d":
+        try:
+            x, p, g = parse_elgamal_key(key)
+            c1, c2 = parse_ciphertext(data.decode().strip())
+            s = pow(c1, x, p)
+            m = (c2 * pow(s, -1, p)) % p
+        except (ValueError, UnicodeDecodeError):
+            print("error: invalid ciphered message or key.", file=sys.stderr)
+            return 84
+
+        byte_count = (m.bit_length() + 7) // 8
+        sys.stdout.buffer.write(m.to_bytes(byte_count, "little") + b"\n")
+        return 0
+
     return 0
 
 
