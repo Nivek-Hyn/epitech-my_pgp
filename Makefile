@@ -15,11 +15,14 @@ $(NAME):
 	@chmod +x $(NAME)
 
 clean:
-	@rm -rf __pycache__
+	@rm -rf __pycache__ tests/__pycache__
 
 fclean:	clean
 	@rm -f $(NAME)
 
 re:	fclean all
 
-.PHONY:	all clean fclean re
+tests:	$(NAME)
+	@python3 -m unittest discover -s tests -t .
+
+.PHONY:	all clean fclean re tests
