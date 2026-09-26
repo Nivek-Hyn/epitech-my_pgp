@@ -7,3 +7,7 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Agents
+pgp-plan.md
+AGENTS.md

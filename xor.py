@@ -30,6 +30,24 @@ def split_blocks(data: bytes, size: int, block: bool) -> list:
 
     return blocks
 
+def cipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
+
+    result = b""
+
+    for chunk in split_blocks(data, len(key_bytes), block):
+        result += xor(chunk[::-1], key_bytes)
+
+    return result
+
+def decipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
+
+    result = b""
+
+    for chunk in split_blocks(data, len(key_bytes), block):
+        result += xor(chunk, key_bytes)[::-1]
+
+    return result
+
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
 
     try:
@@ -46,22 +64,16 @@ def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
         data = data[:-1]
 
     if mode == "-c":
-        result = b""
-        for chunk in split_blocks(data, len(key_bytes), block):
-            result += xor(chunk[::-1], key_bytes)
-        print(result.hex())
+        print(cipher_xor(data, key_bytes, block).hex())
         return 0
 
     if mode == "-d":
         try:
-            data = bytes.fromhex(data.decode())
+            ciphered = bytes.fromhex(data.decode())
         except (ValueError, UnicodeDecodeError):
             print("error: invalid ciphered message.", file=sys.stderr)
             return 84
 
-        result = b""
-        for chunk in split_blocks(data, len(key_bytes), block):
-            result += xor(chunk, key_bytes)[::-1]
-        sys.stdout.buffer.write(result + b"\n")
+        sys.stdout.buffer.write(decipher_xor(ciphered, key_bytes, block) + b"\n")
 
     return 0
