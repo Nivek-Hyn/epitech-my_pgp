@@ -72,27 +72,29 @@ class TestCipherVectors(unittest.TestCase):
 class TestRunXor(unittest.TestCase):
 
     def test_run_cipher_block_mode(self):
-        code, output = capture_output(run_xor, "-c", PDF_KEY, True,
+        code, output, _ = capture_output(run_xor, "-c", PDF_KEY, True,
                                       PDF_MESSAGE + b"\n")
         self.assertEqual(code, 0)
         self.assertEqual(output, (PDF_CIPHERED + "\n").encode())
 
     def test_run_decipher_block_mode(self):
-        code, output = capture_output(run_xor, "-d", PDF_KEY, True,
+        code, output, _ = capture_output(run_xor, "-d", PDF_KEY, True,
                                        (PDF_CIPHERED + "\n").encode())
         self.assertEqual(code, 0)
         self.assertEqual(output, PDF_MESSAGE + b"\n")
 
     def test_invalid_key_exits_84(self):
-        code, output = capture_output(run_xor, "-c", "zz", False, b"data\n")
+        code, output, err = capture_output(run_xor, "-c", "zz", False,
+                                            b"data\n")
         self.assertEqual(code, 84)
+        self.assertIn("invalid key", err)
 
     def test_empty_key_exits_84(self):
-        code, output = capture_output(run_xor, "-c", "", False, b"data\n")
+        code, output, _ = capture_output(run_xor, "-c", "", False, b"data\n")
         self.assertEqual(code, 84)
 
     def test_invalid_ciphered_message_exits_84(self):
-        code, output = capture_output(run_xor, "-d", PDF_KEY, False, b"zz\n")
+        code, output, _ = capture_output(run_xor, "-d", PDF_KEY, False, b"zz\n")
         self.assertEqual(code, 84)
 
 

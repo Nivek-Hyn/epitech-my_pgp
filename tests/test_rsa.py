@@ -73,51 +73,51 @@ class TestParseKey(unittest.TestCase):
 class TestKeyGeneration(unittest.TestCase):
 
     def test_small_keys_match_the_subject(self):
-        code, output = capture_output(run_rsa_generate, P_SMALL, Q_SMALL)
+        code, output, _ = capture_output(run_rsa_generate, P_SMALL, Q_SMALL)
         self.assertEqual(code, 0)
         self.assertEqual(output, (PUBLIC_SMALL + PRIVATE_SMALL).encode())
 
     def test_256_bit_keys_match_the_subject(self):
-        code, output = capture_output(run_rsa_generate, P_256, Q_256)
+        code, output, _ = capture_output(run_rsa_generate, P_256, Q_256)
         self.assertEqual(code, 0)
         self.assertEqual(output, (PUBLIC_256 + PRIVATE_256).encode())
 
     def test_invalid_primes_exit_84(self):
-        code, output = capture_output(run_rsa_generate, "zz", Q_SMALL)
+        code, output, _ = capture_output(run_rsa_generate, "zz", Q_SMALL)
         self.assertEqual(code, 84)
 
 
 class TestCipherDecipher(unittest.TestCase):
 
     def test_cipher_matches_the_subject(self):
-        code, output = capture_output(run_rsa, "-c", "0101-19bb", False,
+        code, output, _ = capture_output(run_rsa, "-c", "0101-19bb", False,
                                       b"WF\n")
         self.assertEqual(code, 0)
         self.assertEqual(output, b"8f84\n")
 
     def test_decipher_matches_the_subject(self):
-        code, output = capture_output(run_rsa, "-d", "9d5b-19bb", False,
+        code, output, _ = capture_output(run_rsa, "-d", "9d5b-19bb", False,
                                       b"8f84\n")
         self.assertEqual(code, 0)
         self.assertEqual(output, b"WF\n")
 
     def test_round_trip_with_256_bit_keys(self):
         message = b"The night is dark and full of terrors"
-        code, ciphered = capture_output(run_rsa, "-c", f"010001-{N_256}",
+        code, ciphered, _ = capture_output(run_rsa, "-c", f"010001-{N_256}",
                                         False, message + b"\n")
         self.assertEqual(code, 0)
 
-        code, deciphered = capture_output(run_rsa, "-d", f"{D_256}-{N_256}",
+        code, deciphered, _ = capture_output(run_rsa, "-d", f"{D_256}-{N_256}",
                                           False, ciphered)
         self.assertEqual(code, 0)
         self.assertEqual(deciphered, message + b"\n")
 
     def test_invalid_key_exits_84(self):
-        code, output = capture_output(run_rsa, "-c", "0101", False, b"WF\n")
+        code, output, _ = capture_output(run_rsa, "-c", "0101", False, b"WF\n")
         self.assertEqual(code, 84)
 
     def test_invalid_ciphered_message_exits_84(self):
-        code, output = capture_output(run_rsa, "-d", "9d5b-19bb", False,
+        code, output, _ = capture_output(run_rsa, "-d", "9d5b-19bb", False,
                                        b"zz\n")
         self.assertEqual(code, 84)
 

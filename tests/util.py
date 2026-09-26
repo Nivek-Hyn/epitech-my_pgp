@@ -18,17 +18,19 @@ if REPO_ROOT not in sys.path:
 
 
 def capture_output(func, *args, **kwargs):
-    """Run func and capture everything written to stdout.
+    """Run func and capture everything written to stdout and stderr.
 
-    Returns (return_code, raw_bytes). Captures both print() (text) and
-    sys.stdout.buffer.write() (bytes), which the decipher paths use.
+    Returns (return_code, raw_stdout_bytes, stderr_string). Captures both
+    print() (text) and sys.stdout.buffer.write() (bytes), which the decipher
+    paths use, plus the error messages the error paths print on stderr.
     """
 
     buffer = io.BytesIO()
     wrapper = io.TextIOWrapper(buffer, encoding="utf-8")
+    err = io.StringIO()
 
-    with contextlib.redirect_stdout(wrapper):
+    with contextlib.redirect_stdout(wrapper), contextlib.redirect_stderr(err):
         result = func(*args, **kwargs)
         wrapper.flush()
 
-    return result, buffer.getvalue()
+    return result, buffer.getvalue(), err.getvalue()

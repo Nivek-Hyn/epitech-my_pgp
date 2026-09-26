@@ -35,14 +35,14 @@ PRIVATE_KEY = f"{CIPHERED_SYM_KEY}:{D_256}-{N_256}"
 class TestPgpXor(unittest.TestCase):
 
     def test_cipher_block_mode_matches_the_subject(self):
-        code, output = capture_output(run_pgp_xor, "-c", PUBLIC_KEY, True,
+        code, output, _ = capture_output(run_pgp_xor, "-c", PUBLIC_KEY, True,
                                       MESSAGE + b"\n")
         self.assertEqual(code, 0)
         expected = (CIPHERED_SYM_KEY + "\n" + CIPHERED_MESSAGE + "\n").encode()
         self.assertEqual(output, expected)
 
     def test_decipher_block_mode_matches_the_subject(self):
-        code, output = capture_output(run_pgp_xor, "-d", PRIVATE_KEY, True,
+        code, output, _ = capture_output(run_pgp_xor, "-d", PRIVATE_KEY, True,
                                       (CIPHERED_MESSAGE + "\n").encode())
         self.assertEqual(code, 0)
         self.assertEqual(output, MESSAGE + b"\n")
@@ -54,12 +54,12 @@ class TestPgpXor(unittest.TestCase):
         padded_len = ((len(message) + len(key_bytes) - 1)
                       // len(key_bytes)) * len(key_bytes)
 
-        code, output = capture_output(run_pgp_xor, "-c", PUBLIC_KEY, False,
+        code, output, _ = capture_output(run_pgp_xor, "-c", PUBLIC_KEY, False,
                                       message)
         self.assertEqual(code, 0)
         ciphered_key, ciphered_message = output.decode().strip().split("\n")
 
-        code, deciphered = capture_output(run_pgp_xor, "-d",
+        code, deciphered, _ = capture_output(run_pgp_xor, "-d",
                                           f"{ciphered_key}:{D_256}-{N_256}",
                                           False,
                                           (ciphered_message + "\n").encode())
@@ -72,31 +72,32 @@ class TestPgpXor(unittest.TestCase):
 class TestPgpErrors(unittest.TestCase):
 
     def test_missing_colon_exits_84(self):
-        code, output = capture_output(run_pgp_xor, "-c", "nocolon", True,
+        code, output, _ = capture_output(run_pgp_xor, "-c", "nocolon", True,
                                       MESSAGE + b"\n")
         self.assertEqual(code, 84)
 
     def test_invalid_symmetric_key_exits_84(self):
-        code, output = capture_output(run_pgp_xor, "-c", f"zz:010001-{N_256}",
+        code, output, _ = capture_output(run_pgp_xor, "-c", f"zz:010001-{N_256}",
                                       True, MESSAGE + b"\n")
         self.assertEqual(code, 84)
 
     def test_invalid_rsa_key_exits_84(self):
-        code, output = capture_output(run_pgp_xor, "-c",
+        code, output, _ = capture_output(run_pgp_xor, "-c",
                                        f"{SYMMETRIC_KEY}:bad-rsa",
                                        True, MESSAGE + b"\n")
         self.assertEqual(code, 84)
 
     def test_invalid_ciphered_message_exits_84(self):
-        code, output = capture_output(run_pgp_xor, "-d", PRIVATE_KEY, True,
+        code, output, _ = capture_output(run_pgp_xor, "-d", PRIVATE_KEY, True,
                                       b"zz\n")
         self.assertEqual(code, 84)
 
     def test_pgp_aes_reports_not_implemented(self):
         # To update when the aes module lands.
-        code, output = capture_output(run_pgp_aes, "-c", PUBLIC_KEY, True,
-                                      MESSAGE + b"\n")
+        code, output, err = capture_output(run_pgp_aes, "-c", PUBLIC_KEY,
+                                           True, MESSAGE + b"\n")
         self.assertEqual(code, 84)
+        self.assertIn("not implemented", err)
 
 
 if __name__ == "__main__":
