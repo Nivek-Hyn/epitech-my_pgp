@@ -16,6 +16,15 @@ def run_rsa(mode: str, key: str, block: bool, data: bytes) -> int:
     except ValueError:
         print("error: invalid key.", file=sys.stderr)
         return 84
+
+    if mode == "-c":
+        if data.endswith(b"\n"):
+            data = data[:-1]
+        m = int.from_bytes(data, "little")
+        c = pow(m, exponent, modulus)
+        print(get_hex_from_int(c))
+        return 0
+
     return 0
 
 
