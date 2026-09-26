@@ -10,6 +10,7 @@ import sys
 from xor import run_xor
 from aes import run_aes
 from rsa import run_rsa, run_rsa_generate
+from elgamal import run_elgamal, run_elgamal_generate
 from pgp import run_pgp_aes, run_pgp_xor
 
 USAGE = """USAGE
@@ -22,6 +23,7 @@ Cipher or decipher MESSAGE using a given CRYPTO_SYSTEM. The MESSAGE is read from
         "xor"            computation using XOR algorithm
         "aes"            computation using AES algorithm
         "rsa"            computation using RSA algorithm
+        "elgamal"        computation using ElGamal algorithm (bonus)
         "pgp-xor"        computation using both RSA and XOR algorithm
         "pgp-aes"        computation using both RSA and AES algorithm
 
@@ -44,6 +46,7 @@ HANDLERS = {
     "xor": run_xor,
     "aes": run_aes,
     "rsa": run_rsa,
+    "elgamal": run_elgamal,
     "pgp-xor": run_pgp_xor,
     "pgp-aes": run_pgp_aes
 }
@@ -71,11 +74,16 @@ def check_args(args: dict) -> int:
         return print_error("unknown mode: " + args["mode"])
 
     if args["mode"] == "-g":
-        if args["crypto_system"] != "rsa":
-            return print_error("-g is only available for rsa.")
-        if len(args["operands"]) != 2:
-            return print_error("-g requires exactly two prime numbers.")
-        return 0
+        if args["crypto_system"] == "rsa":
+            if len(args["operands"]) != 2:
+                return print_error("-g requires exactly two prime numbers.")
+            return 0
+        if args["crypto_system"] == "elgamal":
+            if len(args["operands"]) != 3:
+                return print_error("-g requires exactly three parameters "
+                                   "(prime, generator, private exponent).")
+            return 0
+        return print_error("-g is only available for rsa and elgamal.")
 
     for option in args["options"]:
         if option != "-b":
@@ -100,7 +108,9 @@ def main(argv: list[str]) -> int:
         return 84
 
     if args["mode"] == "-g":
-        return run_rsa_generate(args["operands"][0], args["operands"][1])
+        if args["crypto_system"] == "rsa":
+            return run_rsa_generate(args["operands"][0], args["operands"][1])
+        return run_elgamal_generate(*args["operands"])
 
     handler = HANDLERS[args["crypto_system"]]
     return handler(mode=args["mode"],
