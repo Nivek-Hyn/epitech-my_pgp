@@ -25,6 +25,17 @@ def run_rsa(mode: str, key: str, block: bool, data: bytes) -> int:
         print(get_hex_from_int(c))
         return 0
 
+    if mode == "-d":
+        try:
+            c = get_int_from_hex(data.decode().strip())
+        except (ValueError, UnicodeDecodeError):
+            print("error: invalid ciphered message.", file=sys.stderr)
+            return 84
+        m = pow(c, exponent, modulus)
+        byte_count = (m.bit_length() + 7) // 8
+        sys.stdout.buffer.write(m.to_bytes(byte_count, "little") + b"\n")
+        return 0
+
     return 0
 
 
