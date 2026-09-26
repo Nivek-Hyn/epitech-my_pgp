@@ -26,6 +26,33 @@ def parse_ciphertext(line: str) -> tuple:
 
 
 def run_elgamal(mode: str, key: str, block: bool, data: bytes) -> int:
+    if mode == "-c":
+        parts = key.split(":", maxsplit=1)
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            print("error: invalid key.", file=sys.stderr)
+            return 84
+
+        try:
+            k = get_int_from_hex(parts[0])
+            y, p, g = parse_elgamal_key(parts[1])
+        except ValueError:
+            print("error: invalid key.", file=sys.stderr)
+            return 84
+
+        if data.endswith(b"\n"):
+            data = data[:-1]
+        m = int.from_bytes(data, "little")
+
+        if m >= p:
+            print("error: message is too big for the modulus.",
+                  file=sys.stderr)
+            return 84
+
+        c1 = pow(g, k, p)
+        c2 = (m * pow(y, k, p)) % p
+        print(f"{get_hex_from_int(c1)}-{get_hex_from_int(c2)}")
+        return 0
+
     return 0
 
 
