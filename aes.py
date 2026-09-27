@@ -54,3 +54,12 @@ def from_state(state: list) -> bytes:
 
 def substitute_bytes(state: list, table: bytes) -> list:
     return [[table[value] for value in row] for row in state]
+
+def rotate_left(row: list, shift: int) -> list:
+    return row[shift:] + row[:shift]
+
+def shift_rows(state: list) -> list:
+    return [rotate_left(state[n], n) for n in range(4)]
+
+def inv_shift_rows(state: list) -> list:
+    return [rotate_left(state[n], -n) for n in range(4)]
