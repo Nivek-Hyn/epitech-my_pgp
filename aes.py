@@ -51,3 +51,6 @@ def to_state(block: bytes) -> list:
 
 def from_state(state: list) -> bytes:
     return bytes(state[i % 4][i // 4] for i in range(16))
+
+def substitute_bytes(state: list, table: bytes) -> list:
+    return [[table[value] for value in row] for row in state]
