@@ -120,3 +120,19 @@ def mix_columns(state: list, matrix: list) -> list:
             new_state[row][col] = mixed[row]
 
     return new_state
+
+def substitute_word(word: list) -> list:
+    return [SBOX[byte] for byte in word]
+
+def xor_words(left: list, right: list) -> list:
+    return [a ^ b for a, b in zip(left, right)]
+
+def round_constants(count: int) -> list:
+    constants = [0x01]
+
+    while len(constants) < count:
+        constants.append(xtime(constants[-1]))
+
+    return constants
+
+RCON = round_constants(10)
