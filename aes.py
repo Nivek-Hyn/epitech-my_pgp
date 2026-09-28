@@ -136,3 +136,15 @@ def round_constants(count: int) -> list:
     return constants
 
 RCON = round_constants(10)
+
+def expand_key(key: bytes) -> list:
+    words = [list(key[i:i + 4]) for i in range(0, 16, 4)]
+
+    for i in range(4, 44):
+        previous = list(words[i - 1])
+        if i % 4 == 0:
+            previous = substitute_word(rotate_left(previous, 1))
+            previous[0] ^= RCON[i // 4 - 1]
+        words.append(xor_words(words[i - 4], previous))
+
+    return [words[i:i + 4] for i in range(0, 44, 4)]
