@@ -41,6 +41,20 @@ def invert_table(table: bytes) -> bytes:
 
 INV_SBOX = invert_table(SBOX)
 
+MIX_MATRIX = [
+    [2, 3, 1, 1],
+    [1, 2, 3, 1],
+    [1, 1, 2, 3],
+    [3, 1, 1, 2],
+]
+
+INV_MIX_MATRIX = [
+    [14, 11, 13, 9],
+    [9, 14, 11, 13],
+    [13, 9, 14, 11],
+    [11, 13, 9, 14],
+]
+
 def to_state(block: bytes) -> list:
     state = [[0] * 4 for _ in range(4)]
 
@@ -82,3 +96,27 @@ def gf_mul(a: int, b: int) -> int:
         b >>= 1
 
     return result
+
+def get_column(state: list, col: int) -> list:
+    return [state[row][col] for row in range(4)]
+
+def mix_one_column(column: list, matrix: list) -> list:
+    mixed = []
+
+    for matrix_row in matrix:
+        value = 0
+        for coefficient, byte in zip(matrix_row, column):
+            value ^= gf_mul(coefficient, byte)
+        mixed.append(value)
+
+    return mixed
+
+def mix_columns(state: list, matrix: list) -> list:
+    new_state = [[0] * 4 for _ in range(4)]
+
+    for col in range(4):
+        mixed = mix_one_column(get_column(state, col), matrix)
+        for row in range(4):
+            new_state[row][col] = mixed[row]
+
+    return new_state
