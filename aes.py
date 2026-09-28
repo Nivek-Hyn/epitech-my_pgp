@@ -63,3 +63,22 @@ def shift_rows(state: list) -> list:
 
 def inv_shift_rows(state: list) -> list:
     return [rotate_left(state[n], -n) for n in range(4)]
+
+def xtime(value: int) -> int:
+    doubled = (value << 1) & 0xFF
+
+    if value & 0x80:
+        doubled ^= 0x1B
+
+    return doubled
+
+def gf_mul(a: int, b: int) -> int:
+    result = 0
+
+    for _ in range(8):
+        if b & 1:
+            result ^= a
+        a = xtime(a)
+        b >>= 1
+
+    return result
