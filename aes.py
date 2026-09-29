@@ -187,3 +187,52 @@ def decipher_block(block: bytes, round_keys: list) -> bytes:
     state = add_round_key(state, round_keys[0])
 
     return from_state(state)
+
+def reverse_words(data: bytes) -> bytes:
+    return b"".join(data[i:i + 4][::-1] for i in range(0, len(data), 4))
+
+def cipher_aes(data: bytes, key_bytes: bytes, block: bool) -> bytes:
+    round_keys = expand_key(reverse_words(key_bytes))
+    result = b""
+
+    for chunk in split_blocks(data, BLOCK_SIZE, block):
+        result += reverse_words(cipher_block(chunk, round_keys))
+
+    return result
+
+def decipher_aes(data: bytes, key_bytes: bytes, block: bool) -> bytes:
+    round_keys = expand_key(reverse_words(key_bytes))
+    result = b""
+
+    for chunk in split_blocks(data, BLOCK_SIZE, block):
+        result += decipher_block(reverse_words(chunk), round_keys)
+
+    return result
+
+def run_aes(mode: str, key: str, block: bool, data: bytes) -> int:
+    try:
+        key_bytes = bytes.fromhex(key)
+    except ValueError:
+        print("error: invalid key.", file=sys.stderr)
+        return 84
+
+    if len(key_bytes) != KEY_SIZE:
+        print("error: aes key must be 16 bytes.", file=sys.stderr)
+        return 84
+
+    if data.endswith(b"\n"):
+        data = data[:-1]
+
+    if mode == "-c":
+        print(cipher_aes(data, key_bytes, block).hex())
+        return 0
+
+    try:
+        ciphered = bytes.fromhex(data.decode())
+    except (ValueError, UnicodeDecodeError):
+        print("error: invalid ciphered message.", file=sys.stderr)
+        return 84
+
+    sys.stdout.buffer.write(decipher_aes(ciphered, key_bytes, block) + b"\n")
+
+    return 0
