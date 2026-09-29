@@ -148,3 +148,12 @@ def expand_key(key: bytes) -> list:
         words.append(xor_words(words[i - 4], previous))
 
     return [words[i:i + 4] for i in range(0, 44, 4)]
+
+def add_round_key(state: list, round_key: list) -> list:
+    new_state = [[0] * 4 for _ in range(4)]
+
+    for row in range(4):
+        for col in range(4):
+            new_state[row][col] = state[row][col] ^ round_key[col][row]
+
+    return new_state
