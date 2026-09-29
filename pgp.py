@@ -7,6 +7,7 @@
 
 import sys
 
+from aes import cipher_aes, decipher_aes
 from rsa import parse_key, get_int_from_hex, get_hex_from_int
 from xor import cipher_xor, decipher_xor
 
@@ -81,5 +82,4 @@ def run_pgp_xor(mode: str, key: str, block: bool, data: bytes) -> int:
 
 
 def run_pgp_aes(mode: str, key: str, block: bool, data: bytes) -> int:
-    print("error: aes is not implemented yet.", file=sys.stderr)
-    return 84
+    return run_pgp(cipher_aes, decipher_aes, mode, key, block, data)

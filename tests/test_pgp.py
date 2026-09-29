@@ -27,6 +27,7 @@ CIPHERED_SYM_KEY = ("97f2af4c1b712008c1e46935f446756443a8a700f20581d138e4e691"
                     "39caf55afd149d41d")
 MESSAGE = b"All men must die"
 CIPHERED_MESSAGE = "32000a5411015504534e06024d050226"
+AES_CIPHERED_MESSAGE = "744ce22c385958348f0df26eceb62eef"
 
 PUBLIC_KEY = f"{SYMMETRIC_KEY}:010001-{N_256}"
 PRIVATE_KEY = f"{CIPHERED_SYM_KEY}:{D_256}-{N_256}"
@@ -92,12 +93,42 @@ class TestPgpErrors(unittest.TestCase):
                                       b"zz\n")
         self.assertEqual(code, 84)
 
-    def test_pgp_aes_reports_not_implemented(self):
-        # To update when the aes module lands.
-        code, output, err = capture_output(run_pgp_aes, "-c", PUBLIC_KEY,
-                                           True, MESSAGE + b"\n")
+
+class TestPgpAes(unittest.TestCase):
+
+    def test_cipher_block_mode_matches_the_subject(self):
+        code, output, _ = capture_output(run_pgp_aes, "-c", PUBLIC_KEY, True,
+                                        MESSAGE + b"\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(output.decode().splitlines(),
+                         [CIPHERED_SYM_KEY, AES_CIPHERED_MESSAGE])
+
+    def test_decipher_block_mode_matches_the_subject(self):
+        code, output, _ = capture_output(run_pgp_aes, "-d", PRIVATE_KEY, True,
+                                        AES_CIPHERED_MESSAGE.encode() + b"\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(output, MESSAGE + b"\n")
+
+    def test_cipher_then_decipher_gives_the_message_back(self):
+        code, output, _ = capture_output(run_pgp_aes, "-c", PUBLIC_KEY, True,
+                                        MESSAGE + b"\n")
+        self.assertEqual(code, 0)
+        ciphered = output.decode().splitlines()[1]
+        code, output, _ = capture_output(run_pgp_aes, "-d", PRIVATE_KEY, True,
+                                        ciphered.encode() + b"\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(output, MESSAGE + b"\n")
+
+    def test_key_without_separator_exits_84(self):
+        code, output, _ = capture_output(run_pgp_aes, "-c", SYMMETRIC_KEY,
+                                        True, MESSAGE + b"\n")
         self.assertEqual(code, 84)
-        self.assertIn("not implemented", err)
+
+    def test_invalid_symmetric_key_exits_84(self):
+        code, output, _ = capture_output(run_pgp_aes, "-c",
+                                        f"zz:010001-{N_256}", True,
+                                        MESSAGE + b"\n")
+        self.assertEqual(code, 84)
 
 
 if __name__ == "__main__":
