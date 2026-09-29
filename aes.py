@@ -157,3 +157,33 @@ def add_round_key(state: list, round_key: list) -> list:
             new_state[row][col] = state[row][col] ^ round_key[col][row]
 
     return new_state
+
+def cipher_block(block: bytes, round_keys: list) -> bytes:
+    state = add_round_key(to_state(block), round_keys[0])
+
+    for round_number in range(1, 10):
+        state = substitute_bytes(state, SBOX)
+        state = shift_rows(state)
+        state = mix_columns(state, MIX_MATRIX)
+        state = add_round_key(state, round_keys[round_number])
+
+    state = substitute_bytes(state, SBOX)
+    state = shift_rows(state)
+    state = add_round_key(state, round_keys[10])
+
+    return from_state(state)
+
+def decipher_block(block: bytes, round_keys: list) -> bytes:
+    state = add_round_key(to_state(block), round_keys[10])
+
+    for round_number in range(9, 0, -1):
+        state = inv_shift_rows(state)
+        state = substitute_bytes(state, INV_SBOX)
+        state = add_round_key(state, round_keys[round_number])
+        state = mix_columns(state, INV_MIX_MATRIX)
+
+    state = inv_shift_rows(state)
+    state = substitute_bytes(state, INV_SBOX)
+    state = add_round_key(state, round_keys[0])
+
+    return from_state(state)
