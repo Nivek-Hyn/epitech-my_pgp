@@ -8,6 +8,17 @@
 import sys
 
 
+##
+## @brief XOR two byte sequences together, byte by byte.
+##
+## The pure operation, with no notion of hexadecimal or byte order. Stops on
+## the shorter of the two, so the caller pads beforehand.
+##
+## @param data: the bytes to combine
+## @param key: the key bytes
+##
+## @return The combined bytes
+##
 def xor(data: bytes, key: bytes) -> bytes:
 
     result = []
@@ -17,6 +28,16 @@ def xor(data: bytes, key: bytes) -> bytes:
 
     return bytes(result)
 
+
+##
+## @brief Cut data into blocks, padding the last one with zeros.
+##
+## @param data: the bytes to cut
+## @param size: block size; for XOR it is the key length
+## @param block: True to keep only the first block, as -b requires
+##
+## @return The list of blocks, all exactly size bytes long
+##
 def split_blocks(data: bytes, size: int, block: bool) -> list:
 
     blocks = []
@@ -30,6 +51,21 @@ def split_blocks(data: bytes, size: int, block: bool) -> list:
 
     return blocks
 
+
+##
+## @brief Cipher a message with XOR.
+##
+## The message is a sequence of bytes while the key and the output are numbers
+## written in little endian, two opposite conventions. Reversing each block
+## lines the bytes up, so the last byte of a block meets the first byte of the
+## key.
+##
+## @param data: the clear message
+## @param key_bytes: the key bytes, which also set the block size
+## @param block: True to treat only the first block
+##
+## @return The ciphered bytes, ready to be printed as hexadecimal
+##
 def cipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 
     result = b""
@@ -39,6 +75,19 @@ def cipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 
     return result
 
+
+##
+## @brief Decipher a message with XOR.
+##
+## XOR is its own inverse, so the operation is unchanged; only the reversal
+## moves to the output, the side that is a sequence of bytes.
+##
+## @param data: the ciphered bytes
+## @param key_bytes: the key bytes, which also set the block size
+## @param block: True to treat only the first block
+##
+## @return The clear bytes
+##
 def decipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 
     result = b""
@@ -48,6 +97,20 @@ def decipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 
     return result
 
+
+##
+## @brief Entry point of the "xor" crypto system.
+##
+## Validates the key, drops the trailing line feed of the message, then
+## ciphers to hexadecimal or deciphers to raw bytes.
+##
+## @param mode: "-c" to cipher, "-d" to decipher
+## @param key: the key in hexadecimal, of any non-zero length
+## @param block: True when -b was given
+## @param data: the message read on the standard input
+##
+## @return 0 on success, 84 on error
+##
 def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
 
     try:
