@@ -30,6 +30,17 @@ FIPS_KEY = "2b7e151628aed2a6abf7158809cf4f3c"
 FIPS_PLAIN = "3243f6a8885a308d313198a2e0370734"
 FIPS_CIPHERED = "3925841d02dc09fbdc118597196a0b32"
 
+# One vector per key size, FIPS-197 appendix C. Same plaintext for all three.
+APPENDIX_C_PLAIN = "00112233445566778899aabbccddeeff"
+APPENDIX_C = (
+    ("000102030405060708090a0b0c0d0e0f",
+     "69c4e0d86a7b0430d8cdb78070b4c55a", 11),
+    ("000102030405060708090a0b0c0d0e0f1011121314151617",
+     "dda97ca4864cdfe06eaf70a0ec0d7191", 13),
+    ("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+     "8ea2b7ca516745bfeafc49904b496089", 15),
+)
+
 
 class TestState(unittest.TestCase):
 
@@ -194,6 +205,36 @@ class TestBlockCipher(unittest.TestCase):
                                         round_keys), plain)
 
 
+class TestKeySizes(unittest.TestCase):
+
+    def test_each_key_size_gives_the_right_number_of_round_keys(self):
+        for key_hex, _, expected in APPENDIX_C:
+            self.assertEqual(len(expand_key(bytes.fromhex(key_hex))), expected)
+
+    def test_known_block_per_key_size(self):
+        plain = bytes.fromhex(APPENDIX_C_PLAIN)
+        for key_hex, ciphered, _ in APPENDIX_C:
+            round_keys = expand_key(bytes.fromhex(key_hex))
+            self.assertEqual(cipher_block(plain, round_keys).hex(), ciphered)
+
+    def test_decipher_per_key_size(self):
+        plain = bytes.fromhex(APPENDIX_C_PLAIN)
+        for key_hex, ciphered, _ in APPENDIX_C:
+            round_keys = expand_key(bytes.fromhex(key_hex))
+            self.assertEqual(decipher_block(bytes.fromhex(ciphered),
+                                            round_keys), plain)
+
+    def test_cli_round_trip_for_every_key_size(self):
+        message = b"All men must die"
+        for key_hex, _, _ in APPENDIX_C:
+            code, out, _ = capture_output(run_aes, "-c", key_hex, True,
+                                          message + b"\n")
+            self.assertEqual(code, 0)
+            code, out, _ = capture_output(run_aes, "-d", key_hex, True, out)
+            self.assertEqual(code, 0)
+            self.assertEqual(out, message + b"\n")
+
+
 class TestReverseWords(unittest.TestCase):
 
     def test_reverses_each_group_of_four_bytes(self):
@@ -250,9 +291,10 @@ class TestRunAes(unittest.TestCase):
         self.assertIn("error", err)
 
     def test_key_of_wrong_length_is_rejected(self):
-        code, _, err = capture_output(run_aes, "-c", "5768", True, b"data")
-        self.assertEqual(code, 84)
-        self.assertIn("error", err)
+        for key_hex in ("5768", "00" * 20, "00" * 33):
+            code, _, err = capture_output(run_aes, "-c", key_hex, True, b"data")
+            self.assertEqual(code, 84)
+            self.assertIn("error", err)
 
     def test_non_hexadecimal_ciphered_message_is_rejected(self):
         code, _, err = capture_output(run_aes, "-d", PDF_KEY, True, b"zz")

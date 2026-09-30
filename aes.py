@@ -12,8 +12,8 @@ from xor import split_blocks
 ## An AES block is always 16 bytes, whatever the key size.
 BLOCK_SIZE = 16
 
-## AES-128 key size, in bytes.
-KEY_SIZE = 16
+## Accepted key sizes in bytes: AES-128, AES-192 and AES-256.
+KEY_SIZES = (16, 24, 32)
 
 ## Substitution table from FIPS-197. Read as a 16x16 grid: the left hex digit
 ## of the index picks the row, the right one the column.
@@ -310,29 +310,40 @@ RCON = round_constants(10)
 
 
 ##
-## @brief Expand a 16-byte key into the 11 round keys of AES-128.
+## @brief Expand a key into the round keys of AES-128, AES-192 or AES-256.
 ##
-## Words 0 to 3 are the key itself. Each later word is the word four places
-## back, which sits at the same position in the previous round key, XORed with
-## a transformation of the word just before it. Every fourth word gets the
-## extra treatment that breaks any symmetry between round keys: a rotation,
-## the s-box, and a round constant that differs each time.
+## The first words are the key itself. Each later word is the word key_words
+## places back, which sits at the same position in the previous round key,
+## XORed with a transformation of the word just before it. Once per round key
+## that transformation is a rotation, the s-box and a round constant, which is
+## what breaks any symmetry between round keys.
 ##
-## @param key: exactly 16 bytes
+## A 256-bit key adds a second substitution halfway through each group, needed
+## because its groups of 8 words would otherwise go too long without a
+## non-linear step.
 ##
-## @return A list of 11 round keys, each a list of 4 words of 4 bytes
+## The key size sets everything else: 4, 6 or 8 words of key give 10, 12 or 14
+## rounds, hence 11, 13 or 15 round keys.
+##
+## @param key: 16, 24 or 32 bytes
+##
+## @return A list of round keys, each a list of 4 words of 4 bytes
 ##
 def expand_key(key: bytes) -> list:
-    words = [list(key[i:i + 4]) for i in range(0, 16, 4)]
+    key_words = len(key) // 4
+    total_words = 4 * (key_words + 7)
+    words = [list(key[i:i + 4]) for i in range(0, len(key), 4)]
 
-    for i in range(4, 44):
+    for i in range(key_words, total_words):
         previous = list(words[i - 1])
-        if i % 4 == 0:
+        if i % key_words == 0:
             previous = substitute_word(rotate_left(previous, 1))
-            previous[0] ^= RCON[i // 4 - 1]
-        words.append(xor_words(words[i - 4], previous))
+            previous[0] ^= RCON[i // key_words - 1]
+        elif key_words > 6 and i % key_words == 4:
+            previous = substitute_word(previous)
+        words.append(xor_words(words[i - key_words], previous))
 
-    return [words[i:i + 4] for i in range(0, 44, 4)]
+    return [words[i:i + 4] for i in range(0, total_words, 4)]
 
 
 ##
@@ -357,7 +368,10 @@ def add_round_key(state: list, round_key: list) -> list:
 
 
 ##
-## @brief Cipher one 16-byte block through the 10 AES rounds.
+## @brief Cipher one 16-byte block through the AES rounds.
+##
+## The number of rounds comes from the number of round keys, so the same code
+## serves AES-128, AES-192 and AES-256.
 ##
 ## A key is added before the first round, otherwise the first operation on the
 ## message would be public and the round would protect nothing. The last round
@@ -365,14 +379,15 @@ def add_round_key(state: list, round_key: list) -> list:
 ## attacker could peel it off the ciphertext alone.
 ##
 ## @param block: exactly 16 bytes
-## @param round_keys: the 11 round keys from expand_key
+## @param round_keys: the round keys from expand_key
 ##
 ## @return The 16 ciphered bytes
 ##
 def cipher_block(block: bytes, round_keys: list) -> bytes:
+    rounds = len(round_keys) - 1
     state = add_round_key(to_state(block), round_keys[0])
 
-    for round_number in range(1, 10):
+    for round_number in range(1, rounds):
         state = substitute_bytes(state, SBOX)
         state = shift_rows(state)
         state = mix_columns(state, MIX_MATRIX)
@@ -380,7 +395,7 @@ def cipher_block(block: bytes, round_keys: list) -> bytes:
 
     state = substitute_bytes(state, SBOX)
     state = shift_rows(state)
-    state = add_round_key(state, round_keys[10])
+    state = add_round_key(state, round_keys[rounds])
 
     return from_state(state)
 
@@ -392,14 +407,15 @@ def cipher_block(block: bytes, round_keys: list) -> bytes:
 ## operation replaced by its inverse.
 ##
 ## @param block: exactly 16 ciphered bytes
-## @param round_keys: the 11 round keys from expand_key
+## @param round_keys: the round keys from expand_key
 ##
 ## @return The 16 clear bytes
 ##
 def decipher_block(block: bytes, round_keys: list) -> bytes:
-    state = add_round_key(to_state(block), round_keys[10])
+    rounds = len(round_keys) - 1
+    state = add_round_key(to_state(block), round_keys[rounds])
 
-    for round_number in range(9, 0, -1):
+    for round_number in range(rounds - 1, 0, -1):
         state = inv_shift_rows(state)
         state = substitute_bytes(state, INV_SBOX)
         state = add_round_key(state, round_keys[round_number])
@@ -472,7 +488,7 @@ def decipher_aes(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 ## ciphers to hexadecimal or deciphers to raw bytes.
 ##
 ## @param mode: "-c" to cipher, "-d" to decipher
-## @param key: the key in hexadecimal, 16 bytes once decoded
+## @param key: the key in hexadecimal, 16, 24 or 32 bytes once decoded
 ## @param block: True when -b was given
 ## @param data: the message read on the standard input
 ##
@@ -485,8 +501,8 @@ def run_aes(mode: str, key: str, block: bool, data: bytes) -> int:
         print("error: invalid key.", file=sys.stderr)
         return 84
 
-    if len(key_bytes) != KEY_SIZE:
-        print("error: aes key must be 16 bytes.", file=sys.stderr)
+    if len(key_bytes) not in KEY_SIZES:
+        print("error: aes key must be 16, 24 or 32 bytes.", file=sys.stderr)
         return 84
 
     if data.endswith(b"\n"):
