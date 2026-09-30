@@ -1,9 +1,18 @@
 # AES
 
 AES is the practical symmetric cipher of my_pgp. Unlike XOR it needs only a
-short key — 16 bytes here — and still resists frequency analysis, because it
-brews the block through ten rounds of substitution and mixing instead of
-combining each byte with the key once. This implementation covers AES-128.
+short key and still resists frequency analysis, because it brews the block
+through several rounds of substitution and mixing instead of combining each
+byte with the key once. All three key sizes are implemented.
+
+| Variant | Key | Rounds | Round keys |
+| --- | --- | --- | --- |
+| AES-128 | 16 bytes | 10 | 11 |
+| AES-192 | 24 bytes | 12 | 13 |
+| AES-256 | 32 bytes | 14 | 15 |
+
+A longer key means more rounds, because there is more secret to diffuse. The
+block, however, is always 16 bytes.
 
 The goal of those rounds is the avalanche effect: every one of the 16 output
 bytes depends on all 16 input bytes and on the whole key. Flip one bit of the
@@ -44,23 +53,24 @@ The three mixing steps exist to make that single XOR impossible to attack.
 ## The rounds
 
 ```
-AddRoundKey(round key 0)          before the first round
+AddRoundKey(round key 0)            before the first round
 
-rounds 1 to 9:
+rounds 1 to N-1:
     SubBytes
     ShiftRows
     MixColumns
     AddRoundKey(round key n)
 
-round 10:
+round N:
     SubBytes
     ShiftRows
-    AddRoundKey(round key 10)     no MixColumns here
+    AddRoundKey(round key N)        no MixColumns here
 ```
 
-Ten rounds, eleven key additions. The initial AddRoundKey matters: without it
-the first operation on the message would be public, so the first round would
-protect nothing.
+N rounds, N+1 key additions. The code reads N from the number of round keys,
+so the same loop serves the three variants. The initial AddRoundKey matters:
+without it the first operation on the message would be public, so the first
+round would protect nothing.
 
 The final round drops MixColumns on purpose. Being public, invertible and the
 last mixing step before the output, an attacker holding the ciphertext could
@@ -96,24 +106,31 @@ bit of the multiplier at a time.
 
 ## Key expansion
 
-One 16-byte key becomes eleven round keys, 44 words in total.
+A key of K words (4, 6 or 8) becomes 4 x (K + 7) words, grouped four by four
+into round keys.
 
 ```
-words 0..3   = the key itself
-word i       = word (i - 4)  XOR  f(word (i - 1))
+words 0..K-1 = the key itself
+word i       = word (i - K)  XOR  f(word (i - 1))
 
-f is the identity, except every 4th word where it is:
+f is the identity, except every Kth word where it is:
     rotate the word left by one byte
     substitute each byte through the s-box
     XOR the round constant into the first byte
+
+with a 256-bit key only, f is also the s-box alone when i % K == 4
 
 round constants: 01 02 04 08 10 20 40 80 1b 36
                  (0x01 doubled in GF(2^8), hence the 1b)
 ```
 
-Word `i - 4` sits at the same position in the previous round key, so each
+Word `i - K` sits at the same position in the previous round key, so each
 round key is derived from the one before it, and therefore from the real key.
-Flip one bit of the key and all eleven round keys change.
+Flip one bit of the key and every round key changes.
+
+The extra substitution for AES-256 exists because its groups are 8 words long:
+without it, too many words in a row would be produced by XOR alone, which is
+linear.
 
 Reusing the same key eleven times would hand an attacker the repetition that
 breaks XOR. The rotation, the s-box and a different constant per round are
@@ -169,9 +186,10 @@ attacker who cannot read it can still alter it and the deciphering will
 happily produce garbage instead of failing. Modern modes authenticate
 (AES-GCM), and signing is one of the suggested bonus features.
 
-**AES-128 only.** AES-192 and AES-256 need a longer key schedule and 12 or 14
-rounds; the round loop and the expansion are hardcoded for 10 rounds and 44
-words.
+**The -b mode is ambiguous above 128 bits.** The subject states that in block
+mode the message and the symmetric key have the same size, which only holds
+for AES-128. An AES block is always 16 bytes, so `-b` here treats one 16-byte
+block whatever the key length.
 
 **Not constant-time.** The s-box lookups and the branch inside `xtime` take a
 time that depends on the data, which leaks information through cache and
