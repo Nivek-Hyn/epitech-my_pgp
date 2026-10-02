@@ -51,9 +51,17 @@ class TestUsage(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertTrue(result.stdout.startswith(b"USAGE"))
 
+    def test_help_writes_nothing_on_the_error_output(self):
+        self.assertEqual(run_pgp("-h").stderr, b"")
+
     def test_no_arguments_exits_84(self):
         result = run_pgp()
         self.assertEqual(result.returncode, 84)
+
+    def test_no_arguments_writes_on_the_error_output_only(self):
+        result = run_pgp()
+        self.assertEqual(result.stdout, b"")
+        self.assertTrue(result.stderr.startswith(b"USAGE"))
 
 
 class TestArgumentErrors(unittest.TestCase):

@@ -39,8 +39,8 @@ Cipher or decipher MESSAGE using a given CRYPTO_SYSTEM. The MESSAGE is read from
 
      key                Key used to cipher/decipher MESSAGE (incompatible with -g MODE)"""
 
-def help():
-    print(USAGE)
+def help(stream=sys.stdout):
+    print(USAGE, file=stream)
 
 HANDLERS = {
     "xor": run_xor,
@@ -96,7 +96,7 @@ def check_args(args: dict) -> int:
 
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
-        help()
+        help(sys.stderr)
         return 84
 
     if argv[1] == "-h":
