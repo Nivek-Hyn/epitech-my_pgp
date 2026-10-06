@@ -88,7 +88,7 @@ def decipher_elgamal(c1: int, c2: int, x: int, p: int) -> int:
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_elgamal_cipher(key: str, data: bytes) -> int:
+def run_elgamal_cipher(key: str, data: bytes = None) -> int:
     parts = key.split(":", maxsplit=1)
     if len(parts) != 2 or not parts[0] or not parts[1]:
         print("error: invalid key.", file=sys.stderr)
@@ -100,6 +100,9 @@ def run_elgamal_cipher(key: str, data: bytes) -> int:
     except ValueError:
         print("error: invalid key.", file=sys.stderr)
         return 84
+
+    if data is None:
+        data = sys.stdin.buffer.read()
 
     if data.endswith(b"\n"):
         data = data[:-1]
@@ -124,9 +127,17 @@ def run_elgamal_cipher(key: str, data: bytes) -> int:
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_elgamal_decipher(key: str, data: bytes) -> int:
+def run_elgamal_decipher(key: str, data: bytes = None) -> int:
     try:
         x, p, g = parse_elgamal_key(key)
+    except ValueError:
+        print("error: invalid ciphered message or key.", file=sys.stderr)
+        return 84
+
+    if data is None:
+        data = sys.stdin.buffer.read()
+
+    try:
         c1, c2 = parse_ciphertext(data.decode().strip())
         m = decipher_elgamal(c1, c2, x, p)
     except (ValueError, UnicodeDecodeError):
@@ -149,7 +160,7 @@ def run_elgamal_decipher(key: str, data: bytes) -> int:
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_elgamal(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_elgamal(mode: str, key: str, block: bool, data: bytes = None) -> int:
     if mode == "-c":
         return run_elgamal_cipher(key, data)
     if mode == "-d":

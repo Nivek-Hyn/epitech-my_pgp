@@ -9,7 +9,7 @@ NAME	=	my_pgp
 
 all:	$(NAME)
 
-$(NAME):
+$(NAME):	main.py
 	@echo '#!/usr/bin/env python3' > $(NAME)
 	@cat main.py >> $(NAME)
 	@chmod +x $(NAME)

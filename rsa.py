@@ -24,12 +24,15 @@ FERMAT_PRIMES = [65537, 257, 17, 5, 3]
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_rsa(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_rsa(mode: str, key: str, block: bool, data: bytes = None) -> int:
     try:
         exponent, modulus = parse_key(key)
     except ValueError:
         print("error: invalid key.", file=sys.stderr)
         return 84
+
+    if data is None:
+        data = sys.stdin.buffer.read()
 
     if mode == "-c":
         if data.endswith(b"\n"):
@@ -115,11 +118,20 @@ def run_rsa_generate(p_hex: str, q_hex: str) -> int:
         print("error: invalid prime numbers given.", file=sys.stderr)
         return 84
 
+    if p_int < 2 or q_int < 2:
+        print("error: prime numbers must be greater than 1.", file=sys.stderr)
+        return 84
+
     n = p_int * q_int
     lambda_n = lcm(p_int - 1, q_int - 1)
 
-    e = next(candidate for candidate in FERMAT_PRIMES
-             if candidate < lambda_n and gcd(candidate, lambda_n) == 1)
+    e = next((candidate for candidate in FERMAT_PRIMES
+              if candidate < lambda_n and gcd(candidate, lambda_n) == 1), None)
+
+    if e is None:
+        print("error: no valid public exponent for these prime numbers.",
+              file=sys.stderr)
+        return 84
 
     d = pow(e, -1, lambda_n)
 

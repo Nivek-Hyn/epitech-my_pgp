@@ -494,7 +494,7 @@ def decipher_aes(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_aes(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_aes(mode: str, key: str, block: bool, data: bytes = None) -> int:
     try:
         key_bytes = bytes.fromhex(key)
     except ValueError:
@@ -504,6 +504,9 @@ def run_aes(mode: str, key: str, block: bool, data: bytes) -> int:
     if len(key_bytes) not in KEY_SIZES:
         print("error: aes key must be 16, 24 or 32 bytes.", file=sys.stderr)
         return 84
+
+    if data is None:
+        data = sys.stdin.buffer.read()
 
     if data.endswith(b"\n"):
         data = data[:-1]

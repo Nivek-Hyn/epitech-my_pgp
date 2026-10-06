@@ -39,6 +39,23 @@ def run_pgp(*args, data=b""):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+def run_with_open_stdin(*args, timeout=5):
+    """Run the binary with stdin left open and empty.
+
+    A test harness that gives no input must still get an immediate answer:
+    an invalid key has to be reported before the message is read.
+    """
+    process = subprocess.Popen([BINARY, *args], stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+        raise AssertionError(f"./my_pgp {' '.join(args)} blocked on stdin")
+    return process.returncode
+
+
 def setUpModule():
     subprocess.run(["make"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL,
                    stderr=subprocess.DEVNULL, check=True)
@@ -62,6 +79,28 @@ class TestUsage(unittest.TestCase):
         result = run_pgp()
         self.assertEqual(result.stdout, b"")
         self.assertTrue(result.stderr.startswith(b"USAGE"))
+
+
+class TestInvalidKeyIsReportedBeforeReadingStdin(unittest.TestCase):
+
+    CASES = (
+        ("xor", "-c", "zz"),
+        ("xor", "-c", "-b", "576"),
+        ("xor", "-d", "-b", "zz"),
+        ("aes", "-c", "-b", "5768"),
+        ("aes", "-c", "-b", "zz"),
+        ("rsa", "-c", "zz"),
+        ("rsa", "-d", "zz"),
+        ("pgp-xor", "-c", "-b", "no-separator"),
+        ("pgp-aes", "-c", "-b", "no-separator"),
+        ("elgamal", "-c", "no-separator"),
+        ("elgamal", "-d", "no-separator"),
+    )
+
+    def test_invalid_key_exits_84_without_waiting_for_input(self):
+        for case in self.CASES:
+            with self.subTest(args=case):
+                self.assertEqual(run_with_open_stdin(*case), 84)
 
 
 class TestArgumentErrors(unittest.TestCase):

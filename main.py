@@ -115,8 +115,7 @@ def main(argv: list[str]) -> int:
     handler = HANDLERS[args["crypto_system"]]
     return handler(mode=args["mode"],
                    key=args["operands"][0],
-                   block="-b" in args["options"],
-                   data=sys.stdin.buffer.read())
+                   block="-b" in args["options"])
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

@@ -20,7 +20,7 @@ def parse_pgp_key(key: str) -> tuple:
 
 
 def run_pgp(cipher_sym, decipher_sym, mode: str, key: str, block: bool,
-            data: bytes) -> int:
+            data: bytes = None) -> int:
     try:
         sym_key_hex, rsa_key = parse_pgp_key(key)
         exponent, modulus = parse_key(rsa_key)
@@ -41,6 +41,9 @@ def run_pgp(cipher_sym, decipher_sym, mode: str, key: str, block: bool,
 
         m = get_int_from_hex(sym_key_hex)
         ciphered_key = get_hex_from_int(pow(m, exponent, modulus))
+
+        if data is None:
+            data = sys.stdin.buffer.read()
 
         if data.endswith(b"\n"):
             data = data[:-1]
@@ -64,6 +67,9 @@ def run_pgp(cipher_sym, decipher_sym, mode: str, key: str, block: bool,
             print("error: empty symmetric key.", file=sys.stderr)
             return 84
 
+        if data is None:
+            data = sys.stdin.buffer.read()
+
         try:
             ciphered = bytes.fromhex(data.decode().strip())
         except (ValueError, UnicodeDecodeError):
@@ -77,9 +83,9 @@ def run_pgp(cipher_sym, decipher_sym, mode: str, key: str, block: bool,
     return 0
 
 
-def run_pgp_xor(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_pgp_xor(mode: str, key: str, block: bool, data: bytes = None) -> int:
     return run_pgp(cipher_xor, decipher_xor, mode, key, block, data)
 
 
-def run_pgp_aes(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_pgp_aes(mode: str, key: str, block: bool, data: bytes = None) -> int:
     return run_pgp(cipher_aes, decipher_aes, mode, key, block, data)

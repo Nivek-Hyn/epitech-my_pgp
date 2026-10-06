@@ -111,7 +111,7 @@ def decipher_xor(data: bytes, key_bytes: bytes, block: bool) -> bytes:
 ##
 ## @return 0 on success, 84 on error
 ##
-def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
+def run_xor(mode: str, key: str, block: bool, data: bytes = None) -> int:
 
     try:
         key_bytes = bytes.fromhex(key)
@@ -122,6 +122,9 @@ def run_xor(mode: str, key: str, block: bool, data: bytes) -> int:
     if len(key_bytes) == 0:
         print("error: empty key.", file=sys.stderr)
         return 84
+
+    if data is None:
+        data = sys.stdin.buffer.read()
 
     if data.endswith(b"\n"):
         data = data[:-1]

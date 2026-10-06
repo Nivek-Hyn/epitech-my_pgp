@@ -87,6 +87,23 @@ class TestKeyGeneration(unittest.TestCase):
         self.assertEqual(code, 84)
 
 
+class TestDegenerateKeyGeneration(unittest.TestCase):
+
+    def test_primes_below_two_exit_84(self):
+        for p_hex, q_hex in (("00", Q_SMALL), (P_SMALL, "00"),
+                             ("01", Q_SMALL), (P_SMALL, "01")):
+            code, _, err = capture_output(run_rsa_generate, p_hex, q_hex)
+            self.assertEqual(code, 84)
+            self.assertIn("error", err)
+
+    def test_primes_too_small_for_any_fermat_prime_exit_84(self):
+        # lambda(n) is smaller than 3, so no public exponent can be chosen:
+        # this used to raise StopIteration and exit 1.
+        code, _, err = capture_output(run_rsa_generate, "02", "03")
+        self.assertEqual(code, 84)
+        self.assertIn("error", err)
+
+
 class TestCipherDecipher(unittest.TestCase):
 
     def test_cipher_matches_the_subject(self):
