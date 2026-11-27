@@ -4,7 +4,7 @@ A PGP-like cryptographic toolbox: several cipher systems behind a single
 command line, from a one-time-pad XOR to the hybrid construction that gives
 PGP its name — a symmetric cipher for the message, RSA to protect the key.
 
-![Generating an RSA key pair, then ciphering and deciphering a message with pgp-aes](docs/media/my_pgp-demo.gif)
+![Ciphering and deciphering a message with XOR, AES and RSA (with key generation), then with pgp-aes: AES for the message, RSA for the AES key](docs/media/my_pgp-demo.gif)
 
 **Python 3, standard library only · AES, RSA, ElGamal written from scratch · 125 tests**
 
@@ -108,7 +108,7 @@ the key and of the ciphered output is reversed, not the 16 bytes as a whole.
   algorithm works and its limits.
 - `BONUS.md` — what was done beyond the mandatory scope.
 
-## Authors
+## Team and contributions
 
 - Hugo Sorgues — RSA, pgp-xor, ElGamal, test suite, documentation
 - Kevin Huynh ([@Nivek-Hyn](https://github.com/Nivek-Hyn)) — CLI and argument parsing, XOR, AES, pgp-aes
