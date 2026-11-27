@@ -4,7 +4,11 @@ A PGP-like cryptographic toolbox: several cipher systems behind a single
 command line, from a one-time-pad XOR to the hybrid construction that gives
 PGP its name — a symmetric cipher for the message, RSA to protect the key.
 
-Built for the Epitech project G-CNA-500 (my_pgp).
+![Generating an RSA key pair, then ciphering and deciphering a message with pgp-aes](docs/media/my_pgp-demo.gif)
+
+**Python 3, standard library only · AES, RSA, ElGamal written from scratch · 125 tests**
+
+Epitech project (G-CNA-500), built in a pair.
 
 ## Crypto systems
 
@@ -23,7 +27,7 @@ Requires Python 3.9 or later. No third-party dependency.
 
 ```
 make            # builds ./my_pgp
-make tests      # runs the 120 unit and integration tests
+make tests      # runs the 125 unit and integration tests
 make clean      # removes caches
 make fclean     # also removes the binary
 ```
@@ -98,7 +102,7 @@ the key and of the ciphered output is reversed, not the 16 bytes as a whole.
 
 ## Tests and documentation
 
-- `make tests` — 120 tests, including every example of the subject as a
+- `make tests` — 125 tests, including every example of the subject as a
   fixed vector, plus the official FIPS-197 vectors for AES.
 - `docs/XOR.md`, `docs/AES.md`, `docs/RSA.md`, `docs/ELGAMAL.md` — how each
   algorithm works and its limits.
@@ -107,4 +111,4 @@ the key and of the ciphered output is reversed, not the 16 bytes as a whole.
 ## Authors
 
 - Hugo Sorgues — RSA, pgp-xor, ElGamal, test suite, documentation
-- Kévin Huynh — CLI and argument parsing, XOR, AES, pgp-aes
+- Kevin Huynh ([@Nivek-Hyn](https://github.com/Nivek-Hyn)) — CLI and argument parsing, XOR, AES, pgp-aes
